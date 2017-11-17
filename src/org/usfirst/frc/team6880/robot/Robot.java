@@ -17,8 +17,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * directory.
  */
 public class Robot extends SampleRobot {
-	final String defaultAuto = "Default";
-	final String customAuto = "My Auto";
+	final String defaultAuto = "Go Straight";
+	final String goStraightAuto = "Go Straight";
+	final String rotateAuto = "Rotate Clockwise 90 degrees";
 	String autoSelected;
 	SendableChooser<String> chooser = new SendableChooser<>();
 	
@@ -26,10 +27,11 @@ public class Robot extends SampleRobot {
 	
 	//TODO Measure commented values
 	final double gearRatio = 10.71; 
-	final int countsPerRotation = 1440;
+	final int pulsesPerRevolution = 1440;
 	final double wheelDiameter = 6.0;
-	final double robotDiameter = 32.0;
-	double inchesPerCount = 0.0, wheelCircumference=0.0, robotCircumference=0.0;
+	final double robotDiameter = 22.0;
+	double inchesPerPulse = 0.0, wheelCircumference=0.0, robotCircumference=0.0;
+	double minInchesPerSecond = 5.0;
 	RobotDrive drivesys=null;
 	VictorSP frontRight, rearRight, frontLeft, rearLeft;
 	Encoder encoderR=null, encoderL=null;
@@ -41,9 +43,11 @@ public class Robot extends SampleRobot {
 	@Override
 	public void robotInit() {
 		chooser.addDefault("Default Auto", defaultAuto);
+		chooser.addObject("Go Straight", goStraightAuto);
+		chooser.addObject("Turn 90 deg Right", rotateAuto);
 		SmartDashboard.putData("Auto choices", chooser);
 		wheelCircumference = Math.PI*wheelDiameter;
-		inchesPerCount = wheelCircumference/1440;
+		inchesPerPulse = wheelCircumference/pulsesPerRevolution;
 		robotCircumference = Math.PI*robotDiameter;
 		
 		joystick = new Joystick(0);
@@ -54,11 +58,15 @@ public class Robot extends SampleRobot {
 		System.out.println("Auto selected: " + autoSelected);
 		encoderL = new Encoder(0,1,false,Encoder.EncodingType.k4X);
 		encoderR = new Encoder(2,3,false,Encoder.EncodingType.k4X);
-		encoderL.setMinRate(10);
-		encoderL.setDistancePerPulse(inchesPerCount);
 		
-		encoderR.setMinRate(10);
-		encoderR.setDistancePerPulse(inchesPerCount);
+		// encoder is assumed to have stopped if the output is below minInchesPerSecond
+		encoderL.setMinRate(minInchesPerSecond);
+		encoderL.setDistancePerPulse(inchesPerPulse);
+		encoderL.reset();
+		
+		encoderR.setMinRate(minInchesPerSecond);
+		encoderR.setDistancePerPulse(inchesPerPulse);
+		encoderR.reset();
 		
 		frontLeft = new VictorSP(0);
 		rearLeft = new VictorSP(1);
@@ -70,14 +78,32 @@ public class Robot extends SampleRobot {
 
 	@Override
 	public void autonomous() {
+	    double avgDistanceTravelled=0.0, distanceToTravel=0.0;
 		switch (autoSelected) {
+		case rotateAuto:
+		    // Turn clockwise 90 degrees
+		    distanceToTravel = (90/360) * wheelCircumference;
+            avgDistanceTravelled = (Math.abs(encoderR.getDistance()) + 
+                    Math.abs(encoderL.getDistance())) / 2;
+            while(avgDistanceTravelled < distanceToTravel){
+                drivesys.drive(0.5, 1.0);
+                avgDistanceTravelled = (Math.abs(encoderR.getDistance()) + 
+                        Math.abs(encoderL.getDistance())) / 2;
+            }
+            drivesys.drive(0.0, 0.0);
+            encoderR.reset();
+            encoderL.reset();
+		    break;
 		case defaultAuto:
 		default:
-			//Move forward 20in
-			double avgDistanceTravelled = (encoderR.getDistance() + encoderL.getDistance())/2;
-			while(avgDistanceTravelled != 240.0){
+			//Move forward 5 ft = 60 in
+		    distanceToTravel = 60.0;
+			avgDistanceTravelled = (Math.abs(encoderR.getDistance()) + 
+			        Math.abs(encoderL.getDistance())) / 2;
+			while(avgDistanceTravelled < distanceToTravel){
 				drivesys.drive(1.0, 0.0);
-				avgDistanceTravelled = (encoderR.getDistance() + encoderL.getDistance())/2;
+				avgDistanceTravelled = (Math.abs(encoderR.getDistance()) + 
+	                    Math.abs(encoderL.getDistance())) / 2;
 			}
 			drivesys.drive(0.0, 0.0);
 			encoderR.reset();
