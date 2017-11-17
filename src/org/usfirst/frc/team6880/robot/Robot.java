@@ -62,10 +62,12 @@ public class Robot extends SampleRobot {
 		// encoder is assumed to have stopped if the output is below minInchesPerSecond
 		encoderL.setMinRate(minInchesPerSecond);
 		encoderL.setDistancePerPulse(inchesPerPulse);
+		encoderL.setMaxPeriod(0.1); // in seconds
 		encoderL.reset();
 		
 		encoderR.setMinRate(minInchesPerSecond);
 		encoderR.setDistancePerPulse(inchesPerPulse);
+        encoderR.setMaxPeriod(0.1); // in seconds
 		encoderR.reset();
 		
 		frontLeft = new VictorSP(0);
@@ -82,7 +84,7 @@ public class Robot extends SampleRobot {
 		switch (autoSelected) {
 		case rotateAuto:
 		    // Turn clockwise 90 degrees
-		    distanceToTravel = (90/360) * wheelCircumference;
+		    distanceToTravel = (90/360) * robotCircumference;
             avgDistanceTravelled = (Math.abs(encoderR.getDistance()) + 
                     Math.abs(encoderL.getDistance())) / 2;
             while(avgDistanceTravelled < distanceToTravel){
